@@ -60,7 +60,7 @@ frontend/.pnp.js
 *.sw?
 
 # Project specific
-data/processed/*
-data/raw/*
+backend/data/processed/*
+backend/data/raw/*
 !data/processed/.gitkeep
 !data/raw/.gitkeep
