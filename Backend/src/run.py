@@ -43,8 +43,7 @@ def initialize_system():
 
 def run_api():
     """Run the FastAPI server"""
-    port = int(os.environ.get("PORT", 10000))  # Default to 10000 as per Render's requirements
-    logger.info(f"Starting API server on port {port}")
+    port = int(os.environ.get("PORT", 8000))  # Use PORT env var but default to 8000
     uvicorn.run("api.app:app", host="0.0.0.0", port=port, reload=True)
 
 async def main():

@@ -28,4 +28,4 @@ CHECK_INTERVAL = 120  # Check every 2 minutes for testing
 
 # API Configuration
 API_HOST = "localhost"
-API_PORT = 8000
+API_PORT = int(os.environ.get("PORT", 8000))  # Use PORT env var but default to 8000

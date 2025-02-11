@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Target, WatchlistItem, HealthStatus } from '../types/api.types';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+const WS_BASE_URL = import.meta.env.VITE_WS_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL
