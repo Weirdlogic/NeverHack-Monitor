@@ -22,4 +22,5 @@ RUN mkdir -p logs data/processed data/raw
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command (can be overridden by docker-compose)
+CMD ["python", "src/run.py"]

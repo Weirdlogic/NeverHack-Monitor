@@ -24,3 +24,4 @@ services:
       - ../Backend/logs:/app/logs
     environment:
       - DATABASE_URL=sqlite:///app/data/db/neverhack.db
+    command: python src/run.py
