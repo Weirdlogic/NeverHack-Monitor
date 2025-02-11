@@ -1,5 +1,6 @@
 FROM python:3.13-slim
 
+# Set the working directory inside the container
 WORKDIR /app
 
 # Install system dependencies including PostgreSQL development files
@@ -9,15 +10,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY ./requirements.txt .
+# Copy the Python dependency file from the Backend folder
+COPY ./Backend/requirements.txt .
+
+# Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code and ensure data directories exist
-COPY ./src ./src
-RUN mkdir -p data/processed data/raw data/db logs
+# Copy the application source code from Backend/src to the container
+COPY ./Backend/src ./src
 
+# Create necessary directories inside the container
+RUN mkdir -p /app/data/processed /app/data/raw /app/data/db /app/logs
+
+# Expose the application port
 EXPOSE 8000
 
-# Default command (can be overridden by docker-compose)
+# Default command to run the app
 CMD ["python", "src/run.py"]
