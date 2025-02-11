@@ -10,6 +10,8 @@ import tenacity
 from validators import JsonValidator
 from data_ingestion import DataIngestion
 import sys
+from api.database import get_session
+from api.data_ingestion import ingest_new_files
 
 from config import BASE_URL, DOWNLOAD_DIR, FILE_PATTERN, CHECK_INTERVAL, PROCESSED_DIR
 
@@ -19,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def extract_datetime_from_filename(filename: str) -> datetime:
+def extract_datetime_from_filename(filename: str) -> Optional[datetime]:
     """Extract date and time from filename and convert to datetime object."""
     try:
         date_time_part = filename.split('_DDoSia')[0]
@@ -37,17 +39,37 @@ def extract_datetime_from_filename(filename: str) -> datetime:
                 except ValueError:
                     continue
                 
-        raise ValueError(f"Could not parse date from filename: {filename}")
+        logger.warning(f"Could not parse date from filename: {filename}")
+        return None
     except Exception as e:
         logger.error(f"Error parsing datetime from {filename}: {e}")
-        raise
+        return None
 
 def get_latest_processed_file() -> Optional[str]:
     """Get the name of the most recently processed file."""
-    processed_files = list(PROCESSED_DIR.glob('*.json'))
-    if not processed_files:
+    try:
+        processed_files = list(PROCESSED_DIR.glob('*.json'))
+        if not processed_files:
+            # Look for the default file
+            default_file = PROCESSED_DIR / "2025-02-07_12-20-02_DDoSia-target-list-full.json"
+            if default_file.exists():
+                return default_file.name
+            logger.warning("No processed files found and default file missing")
+            return None
+            
+        latest = None
+        latest_datetime = None
+        
+        for file in processed_files:
+            file_datetime = extract_datetime_from_filename(file.name)
+            if file_datetime and (latest_datetime is None or file_datetime > latest_datetime):
+                latest = file.name
+                latest_datetime = file_datetime
+        
+        return latest
+    except Exception as e:
+        logger.error(f"Error getting latest processed file: {e}")
         return None
-    return sorted(processed_files)[-1].name
 
 class FileWatcher:
     def __init__(self):
@@ -58,7 +80,6 @@ class FileWatcher:
             sys.exit(1)
         self._initialize_latest_file()
         self.validator = JsonValidator()
-        self.ingestion = DataIngestion()
 
     def _check_target_file(self) -> bool:
         """Check if our target file exists."""
@@ -75,9 +96,11 @@ class FileWatcher:
         """Initialize the latest processed file information."""
         try:
             self.latest_file = self.target_file
-            self.latest_datetime = extract_datetime_from_filename(self.latest_file)
+            dt = extract_datetime_from_filename(self.latest_file)
+            if dt is None:
+                raise ValueError(f"Could not parse datetime from {self.latest_file}")
+            self.latest_datetime = dt
             logger.info(f"Using target file as reference: {self.latest_file} ({self.latest_datetime})")
-
         except Exception as e:
             logger.error(f"Error initializing latest file: {e}")
             raise
@@ -106,14 +129,15 @@ class FileWatcher:
             for link in soup.find_all('a'):
                 href = link.get('href')
                 if href and re.match(FILE_PATTERN, href):
-                    try:
-                        file_date = extract_datetime_from_filename(href)
-                        if file_date <= self.latest_datetime:
-                            skipped_files.append((href, file_date))
-                            continue
-                        newer_files.append((href, file_date))
-                    except ValueError as e:
-                        logger.warning(f"Invalid date format in file: {href}")
+                    file_date = extract_datetime_from_filename(href)
+                    if not file_date:
+                        logger.warning(f"Could not parse date from {href}")
+                        continue
+                        
+                    if file_date <= self.latest_datetime:
+                        skipped_files.append((href, file_date))
+                        continue
+                    newer_files.append((href, file_date))
 
             logger.info(f"Found {len(newer_files)} new files, skipped {len(skipped_files)} older files")
             return [f[0] for f in sorted(newer_files, key=lambda x: x[1])]
@@ -141,16 +165,8 @@ class FileWatcher:
                 logger.error(f"Validation failed for {filename}: {error}")
                 filepath.unlink()
                 return False
-            
-            success = self.ingestion.ingest_file(filepath)
-            if not success:
-                logger.error(f"Ingestion failed for {filename}")
-                return False
-            
-            processed_path = PROCESSED_DIR / filename
-            filepath.rename(processed_path)
-            
-            logger.info(f"Successfully processed {filename}")
+                
+            logger.info(f"Successfully downloaded {filename}")
             return True
             
         except Exception as e:
@@ -172,12 +188,21 @@ class FileWatcher:
             downloaded = []
             for filename in available_files:
                 file_datetime = extract_datetime_from_filename(filename)
+                if not file_datetime:
+                    continue
+                    
                 logger.info(f"Processing file {filename} from {file_datetime}")
                 
                 if self._download_file(filename):
                     downloaded.append(filename)
                     self.latest_file = filename
                     self.latest_datetime = file_datetime
+
+            # Immediately process downloaded files
+            if downloaded:
+                with get_session() as session:
+                    files_processed = ingest_new_files(session)
+                    logger.info(f"Ingested {files_processed} new files")
 
             return downloaded
 

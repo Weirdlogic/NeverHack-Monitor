@@ -7,6 +7,9 @@ import logging
 from typing import List, Optional
 import sys
 from bs4 import BeautifulSoup
+from sqlalchemy.orm import Session
+from api.database import get_session
+from api.data_ingestion import ingest_new_files
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -100,7 +103,6 @@ class WebsitePoller:
                     files = []
                     skipped = 0
                     
-                    # Parse HTML to find links
                     for link in soup.find_all('a'):
                         filename = link.get('href')
                         if not filename or not self.pattern.match(filename):
@@ -161,8 +163,23 @@ class WebsitePoller:
             logger.error(f"Error downloading {filename}: {e}")
             return False
 
+    async def process_downloaded_files(self):
+        """Process any downloaded files in the raw directory"""
+        try:
+            with get_session() as session:
+                files_processed = ingest_new_files(session)
+                if files_processed > 0:
+                    logger.info(f"Successfully ingested {files_processed} files")
+                    # Update latest file after successful ingestion
+                    new_latest = get_latest_processed_file()
+                    if new_latest:
+                        self.target_file = new_latest
+                        self._initialize_latest_file()
+        except Exception as e:
+            logger.error(f"Error processing downloaded files: {e}")
+
     async def poll(self):
-        """Main polling loop with security checks."""
+        """Main polling loop with security checks and immediate processing."""
         if not self._check_target_file():
             logger.error("Security check failed - cannot start polling")
             return
@@ -177,8 +194,15 @@ class WebsitePoller:
                 logger.info("Checking for new files...")
                 files = await self.get_available_files()
                 
-                for file in files:
-                    await self.download_file(file)
+                if files:
+                    downloaded = False
+                    for file in files:
+                        if await self.download_file(file):
+                            downloaded = True
+                    
+                    if downloaded:
+                        # Immediately process downloaded files
+                        await self.process_downloaded_files()
                 
                 logger.info(f"Waiting {CHECK_INTERVAL} seconds before next check...")
                 await asyncio.sleep(CHECK_INTERVAL)
