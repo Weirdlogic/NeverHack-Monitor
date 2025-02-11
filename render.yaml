@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: frontend-service
+    env: static
+    buildCommand: npm run build
+    startCommand: nginx -g 'daemon off;'
+    build:
+      dockerfilePath: docker/frontend/Dockerfile  # Path to the frontend Dockerfile
+      contextPath: ..
+    envVars:
+      VITE_API_URL: http://localhost:8000/api
+      VITE_WS_URL: ws://localhost:8000/ws
+    ports:
+      - 80
+
+  - type: web
+    name: backend-service
+    env: python
+    build:
+      dockerfilePath: ../docker/backend/Dockerfile  # Path to the backend Dockerfile
+      contextPath: ../Backend
+    startCommand: python src/run.py
+    envVars:
+      DATABASE_URL: sqlite:///app/data/db/neverhack.db
+    ports:
+      - 8000
+    disk:
+      - name: app-data
+        mountPath: /app/data
