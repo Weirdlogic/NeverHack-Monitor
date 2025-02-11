@@ -32,13 +32,19 @@ class DatabaseMonitor:
             # Get all watchlist items
             watchlist_items = session.query(WatchlistItem).all()
 
+            # Track new matches to avoid double counting
+            new_matches = set()
+
             # Check each target against watchlist patterns
             for target in latest_targets:
                 for item in watchlist_items:
                     if self._target_matches_pattern(target, item.pattern):
-                        # Update watchlist item match count and timestamp
-                        item.match_count = (item.match_count or 0) + 1
-                        item.last_match = datetime.now()
+                        # Only update if this is a new match we haven't seen
+                        match_key = f"{item.id}-{target.host}-{target.id}"
+                        if match_key not in new_matches:
+                            new_matches.add(match_key)
+                            # Update watchlist item match timestamp only
+                            item.last_match = datetime.now()
             
             session.commit()
 

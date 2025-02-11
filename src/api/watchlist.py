@@ -36,8 +36,8 @@ async def get_watchlist():
         items = session.query(WatchlistItem).all()
         return [serialize_watchlist_item(item) for item in items]
 
-async def update_match_stats(item_id: int):
-    """Update match statistics for a watchlist item"""
+async def update_match_stats(item_id: int, target_host: str):
+    """Update match statistics for a watchlist item when a real target match is found"""
     with get_session() as session:
         item = session.query(WatchlistItem).filter_by(id=item_id).first()
         if item:
@@ -53,6 +53,22 @@ async def check_watchlist_item(item_id: int, background_tasks: BackgroundTasks):
         if not item:
             raise HTTPException(status_code=404, detail="Item not found")
         
+        # First check for actual matches in active targets
+        one_day_ago = datetime.utcnow() - timedelta(days=1)
+        matches = session.query(Target)\
+            .filter(or_(
+                Target.host.like(f"%{item.pattern}%"),
+                Target.ip.like(f"%{item.pattern}%")
+            ))\
+            .filter(Target.last_seen >= one_day_ago)\
+            .all()
+            
+        if matches:
+            # Only update match stats if we found real targets
+            for match in matches:
+                background_tasks.add_task(update_match_stats, item_id, match.host)
+        
+        # Then do the availability check
         try:
             response = requests.get(f"http://{item.pattern}", timeout=5)
             status = {
@@ -65,14 +81,9 @@ async def check_watchlist_item(item_id: int, background_tasks: BackgroundTasks):
             item.is_up = status["is_up"]
             item.last_check = datetime.utcnow()
             item.last_status = response.status_code
-            
-            # If we got a successful response, increment match count
-            if status["is_up"]:
-                background_tasks.add_task(update_match_stats, item_id)
-            
             session.commit()
-            return status
             
+            return status
         except Exception as e:
             status = {
                 "is_up": False,
@@ -101,9 +112,19 @@ async def delete_watchlist_item(item_id: int):
 
 @router.get("/watchlist/latest-matches")
 async def get_latest_matches(limit: int = 10):
-    """Get the most recent matches from the latest target list"""
+    """Get the most recent matches from the latest target list and update match counts"""
     with get_session() as session:
         matches = monitor.get_latest_matches(session, limit)
+        
+        # Update match counts for matching items
+        for match in matches:
+            item = session.query(WatchlistItem).filter_by(pattern=match['pattern']).first()
+            if item:
+                item.match_count = (item.match_count or 0) + 1
+                item.last_match = match['match_time']
+        
+        session.commit()
+        
         return [
             {
                 "host": match['target'].host,
