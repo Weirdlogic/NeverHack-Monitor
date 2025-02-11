@@ -3,7 +3,7 @@ import { Target } from '../../types/api.types';
 import { useSearch } from '../../hooks/useSearch';
 import SearchBar from '../shared/SearchBar';
 import { Globe, Check, X, ArrowLeft, Server, Activity, AlertTriangle } from 'lucide-react';
-import { getWatchlistItems, addWatchlistItem, deleteWatchlistItem, checkWatchlistItem } from '../../services/api';
+import { getWatchlistItems, addWatchlistItem, deleteWatchlistItem, checkWatchlistItem, getActiveTargets } from '../../services/api';
 import AddWatchlistItem from './AddWatchlistItem';
 import AttackOverview from './AttackTimeline';  // Fixed import name
 import toast from 'react-hot-toast';
@@ -71,17 +71,37 @@ const WatchList = () => {
 
   // Add alerts handling
   useEffect(() => {
-    const alertItems = watchlistItems
-      .filter(item => item.match_count && item.match_count > 0)
-      .map(item => ({
-        pattern: item.pattern,
-        severity: item.severity,
-        description: item.description,
-        match_count: item.match_count || 0,
-        timestamp: item.last_match || '',
-        target: {} as ExtendedTarget 
-      }));
-    setAlerts(alertItems);
+    const fetchMatchData = async () => {
+      try {
+        const targets = await getActiveTargets(1); // Get last 24 hours
+        const matchedAlerts = watchlistItems
+          .filter(item => targets.some(target => 
+            target.host.includes(item.pattern) || target.ip.includes(item.pattern)
+          ))
+          .map(item => {
+            const matchedTarget = targets.find(target => 
+              target.host.includes(item.pattern) || target.ip.includes(item.pattern)
+            );
+            return {
+              pattern: item.pattern,
+              severity: item.severity,
+              description: item.description,
+              match_count: item.match_count ?? 0,
+              timestamp: item.last_match || '',
+              target: matchedTarget || {
+                host: item.pattern,
+              } as ExtendedTarget 
+            };
+          });
+        setAlerts(matchedAlerts);
+      } catch (error) {
+        console.error('Failed to fetch match data:', error);
+      }
+    };
+
+    fetchMatchData();
+    const matchInterval = setInterval(fetchMatchData, 30000); // Poll every 30 seconds
+    return () => clearInterval(matchInterval);
   }, [watchlistItems]);
 
   const handleAddToWatchlist = async (pattern: string) => {
