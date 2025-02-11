@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { NotificationStore, Notification } from '../types/notifications';
+import type { NotificationStore } from '../types/notifications';
 
 export const useNotificationStore = create<NotificationStore>((set) => ({
   notifications: [],

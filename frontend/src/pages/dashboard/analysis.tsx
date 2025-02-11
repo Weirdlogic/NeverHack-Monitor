@@ -17,9 +17,9 @@ interface DetailedTarget extends Target {
   };
 }
 
-const getUniqueValues = (array: DetailedTarget[], key: keyof DetailedTarget): (string | number)[] => {
-  const values = array.map(item => item[key]);
-  return Array.from(new Set(values.filter(v => typeof v === 'string' || typeof v === 'number')));
+const getUniqueValues = (array: DetailedTarget[], key: keyof DetailedTarget): string[] => {
+  const values = array.map(item => String(item[key])); // Convert all values to strings
+  return Array.from(new Set(values));
 };
 
 interface AnalysisProps {

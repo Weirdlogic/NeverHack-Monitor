@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, Settings, Menu, X, AlertTriangle, Activity, Server } from 'lucide-react';
 import { getApiHealth, getSearchHealth, getLatestMatches } from '../../services/api';
@@ -43,8 +43,8 @@ const Header = () => {
     refetchInterval: 30000
   });
 
-  // Poll for latest matches and create notifications
-  const { data: latestMatches } = useQuery({
+  // Poll for latest matches (used by useNotifications hook)
+  useQuery({
     queryKey: ['latestMatches'],
     queryFn: () => getLatestMatches(5),
     refetchInterval: 10000,

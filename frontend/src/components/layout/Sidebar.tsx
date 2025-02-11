@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { BarChart2, Search, Shield, List, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
