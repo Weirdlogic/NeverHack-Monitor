@@ -41,7 +41,7 @@ export const getApiHealth = () =>
   api.get<HealthStatus>('/health').then(res => res.data);
 
 export const getSearchHealth = () =>
-  api.get<HealthStatus>('/search/health').then(res => res.data);
+  api.get<HealthStatus>('/health').then(res => res.data);
 
 // Dashboard API calls
 export const getDashboardStats = () =>

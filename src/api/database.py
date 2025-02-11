@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, func, desc, or_
+from sqlalchemy import create_engine, func, desc, or_, text
 from sqlalchemy.orm import Session, sessionmaker
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Generator
@@ -53,6 +53,12 @@ def get_session() -> Generator:
 class DashboardQueries:
     def __init__(self):
         self.engine = engine
+
+    def verify_connection(self) -> bool:
+        """Verify database connection with a simple query"""
+        with get_session() as session:
+            session.execute(text("SELECT 1"))
+            return True
 
     def get_dashboard_stats(self) -> Dict[str, Any]:
         """Get main dashboard statistics"""

@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getRecentTargets, getAttackMethods, getTargetDetails } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Shield, AlertTriangle, Server, Activity } from 'lucide-react';
 import type { Target } from '../../types/api.types';
 
@@ -89,25 +89,50 @@ const AttackOverview = () => {
           className="bg-white p-6 rounded-lg shadow-sm"
         >
           <h3 className="text-lg font-medium mb-4">Top Attack Methods</h3>
-          <div className="h-64">
+          <div className="h-[450px]">
             {methodsData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
                   <Pie
                     data={methodsData}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
+                    cy="45%"
+                    innerRadius={90}
+                    outerRadius={140}
                     paddingAngle={5}
                     dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
+                    label={({ percent }) => 
+                      `${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={true}
                   >
                     {methodsData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        stroke="#fff"
+                        strokeWidth={2}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} attacks`, name]}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  <Legend 
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
+                    wrapperStyle={{
+                      paddingTop: '20px'
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

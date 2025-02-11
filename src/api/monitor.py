@@ -93,33 +93,32 @@ class DatabaseMonitor:
             if should_close:
                 await client.close()
 
-    def get_latest_matches(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_latest_matches(self, session, limit: int = 10) -> List[Dict[str, Any]]:
         """Get the most recent matches for watchlist patterns"""
-        with get_session() as session:
-            # Get latest target list
-            latest_list = session.query(TargetList).order_by(desc(TargetList.ingested_at)).first()
-            if not latest_list:
-                return []
+        # Get latest target list
+        latest_list = session.query(TargetList).order_by(desc(TargetList.ingested_at)).first()
+        if not latest_list:
+            return []
 
-            # Get all targets from latest list
-            latest_targets = session.query(Target).filter(Target.target_list_id == latest_list.id).all()
-            
-            # Get all watchlist items
-            watchlist_items = session.query(WatchlistItem).all()
+        # Get all targets from latest list
+        latest_targets = session.query(Target).filter(Target.target_list_id == latest_list.id).all()
+        
+        # Get all watchlist items
+        watchlist_items = session.query(WatchlistItem).all()
 
-            matches = []
-            for target in latest_targets:
-                for item in watchlist_items:
-                    if self._target_matches_pattern(target, item.pattern):
-                        matches.append({
-                            'target': target,
-                            'pattern': item.pattern,
-                            'severity': item.severity,
-                            'match_time': datetime.now()
-                        })
+        matches = []
+        for target in latest_targets:
+            for item in watchlist_items:
+                if self._target_matches_pattern(target, item.pattern):
+                    matches.append({
+                        'target': target,
+                        'pattern': item.pattern,
+                        'severity': item.severity,
+                        'match_time': datetime.now()
+                    })
 
-            # Return most recent matches
-            return sorted(matches, key=lambda x: x['match_time'], reverse=True)[:limit]
+        # Return most recent matches
+        return sorted(matches, key=lambda x: x['match_time'], reverse=True)[:limit]
 
 # Create a singleton instance
 monitor = DatabaseMonitor()

@@ -102,25 +102,26 @@ async def delete_watchlist_item(item_id: int):
 @router.get("/watchlist/latest-matches")
 async def get_latest_matches(limit: int = 10):
     """Get the most recent matches from the latest target list"""
-    matches = monitor.get_latest_matches(limit)
-    return [
-        {
-            "host": match['target'].host,
-            "ip": match['target'].ip,
-            "method": match['target'].method,
-            "port": match['target'].port,
-            "type": match['target'].type,
-            "path": match['target'].path,
-            "body": match['target'].body,
-            "first_seen": match['target'].first_seen.isoformat() if match['target'].first_seen else None,
-            "last_seen": match['target'].last_seen.isoformat() if match['target'].last_seen else None,
-            "attacks": match['target'].attacks,
-            "pattern": match['pattern'],
-            "severity": match['severity'],
-            "match_time": match['match_time'].isoformat()
-        }
-        for match in matches
-    ]
+    with get_session() as session:
+        matches = monitor.get_latest_matches(session, limit)
+        return [
+            {
+                "host": match['target'].host,
+                "ip": match['target'].ip,
+                "method": match['target'].method,
+                "port": match['target'].port,
+                "type": match['target'].type,
+                "path": match['target'].path,
+                "body": match['target'].body,
+                "first_seen": match['target'].first_seen.isoformat() if match['target'].first_seen else None,
+                "last_seen": match['target'].last_seen.isoformat() if match['target'].last_seen else None,
+                "attacks": match['target'].attacks,
+                "pattern": match['pattern'],
+                "severity": match['severity'],
+                "match_time": match['match_time'].isoformat()
+            }
+            for match in matches
+        ]
 
 @router.get("/watchlist/traffic-alerts")
 async def get_traffic_alerts(threshold: int = 10):
