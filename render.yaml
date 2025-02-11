@@ -5,8 +5,8 @@ services:
     buildCommand: npm run build
     startCommand: nginx -g 'daemon off;'
     build:
-      dockerfilePath: docker/frontend/Dockerfile  # Path to the frontend Dockerfile
-      contextPath: ..
+      dockerfilePath: docker/frontend/Dockerfile  # Corrected path
+      contextPath: ./frontend  # Docker context points to frontend directory
     envVars:
       VITE_API_URL: http://localhost:8000/api
       VITE_WS_URL: ws://localhost:8000/ws
@@ -17,8 +17,8 @@ services:
     name: backend-service
     env: python
     build:
-      dockerfilePath: ../docker/backend/Dockerfile  # Path to the backend Dockerfile
-      contextPath: ../Backend
+      dockerfilePath: docker/backend/Dockerfile  # Corrected path
+      contextPath: ./Backend  # Docker context points to Backend directory
     startCommand: python src/run.py
     envVars:
       DATABASE_URL: sqlite:///app/data/db/neverhack.db
