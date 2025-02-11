@@ -75,35 +75,45 @@ class FileWatcher:
     def __init__(self):
         self.last_check = None
         self.target_file = get_latest_processed_file()
-        if not self.target_file:
-            logger.error("No processed files found. Cannot proceed.")
-            sys.exit(1)
-        self._initialize_latest_file()
         self.validator = JsonValidator()
+        
+        # Initialize with default values for first run
+        self.latest_file = self.target_file
+        self.latest_datetime = datetime.min  # Use minimum date for first run
+        
+        if self.target_file:
+            self._initialize_latest_file()
+            logger.info(f"Initialized FileWatcher with target file: {self.target_file}")
+        else:
+            logger.info("First-time initialization - no existing files")
 
     def _check_target_file(self) -> bool:
-        """Check if our target file exists."""
+        """Check if our target file exists or if this is first-time initialization."""
+        if not self.target_file:
+            return True  # Allow first-time initialization
+            
         target_path = PROCESSED_DIR / self.target_file
         exists = target_path.exists()
         if not exists:
-            logger.error(
-                f"SECURITY CHECK FAILED: Target file {self.target_file} not found. "
-                "Cannot proceed with downloads to prevent abuse of the source website."
-            )
+            logger.warning(f"Target file {self.target_file} not found - reverting to first-time initialization mode")
+            self.target_file = None
+            self.latest_datetime = datetime.min
+            return True
         return exists
 
     def _initialize_latest_file(self):
         """Initialize the latest processed file information."""
         try:
-            self.latest_file = self.target_file
             dt = extract_datetime_from_filename(self.latest_file)
-            if dt is None:
-                raise ValueError(f"Could not parse datetime from {self.latest_file}")
-            self.latest_datetime = dt
-            logger.info(f"Using target file as reference: {self.latest_file} ({self.latest_datetime})")
+            if dt is not None:
+                self.latest_datetime = dt
+                logger.info(f"Using target file as reference: {self.latest_file} ({self.latest_datetime})")
+            else:
+                self.latest_datetime = datetime.min
+                logger.warning("Could not parse datetime from file, using minimum date")
         except Exception as e:
             logger.error(f"Error initializing latest file: {e}")
-            raise
+            self.latest_datetime = datetime.min
 
     @tenacity.retry(
         stop=tenacity.stop_after_attempt(3),

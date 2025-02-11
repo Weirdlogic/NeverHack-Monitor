@@ -25,19 +25,19 @@ def initialize_system():
     for directory in [PROCESSED_DIR, DOWNLOAD_DIR]:
         os.makedirs(directory, exist_ok=True)
     
-    # Check if processed directory is empty
-    if not any(PROCESSED_DIR.glob('*.json')):
-        logger.warning("No files found in processed directory. System requires at least one processed file.")
-        return None
-    
     # Initialize database without dropping
     engine = init_database(drop_existing=False)
     logger.info("Database initialized successfully!")
     
+    # Check if processed directory is empty - but don't prevent initialization
+    if not any(PROCESSED_DIR.glob('*.json')):
+        logger.info("No files found in processed directory. Running first-time initialization.")
+    
     # First process any existing files in raw directory
     with Session(engine) as session:
         files_processed = ingest_new_files(session)
-        logger.info(f"Processed {files_processed} initial JSON files")
+        if files_processed > 0:
+            logger.info(f"Processed {files_processed} initial JSON files")
     
     return engine
 
@@ -49,7 +49,7 @@ async def main():
     # Initialize system first
     engine = initialize_system()
     if not engine:
-        logger.error("System initialization failed. Ensure at least one processed file exists.")
+        logger.error("Database initialization failed.")
         return
     
     # Start API server in a separate process

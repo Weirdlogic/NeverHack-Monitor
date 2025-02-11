@@ -33,33 +33,43 @@ class WebsitePoller:
         self.pattern = re.compile(FILE_PATTERN)
         self.session: Optional[aiohttp.ClientSession] = None
         self.target_file = get_latest_processed_file()
-        if not self.target_file:
-            raise RuntimeError("No processed files found. Cannot proceed.")
-        self._initialize_latest_file()
-        logger.info(f"Initialized WebsitePoller with target file: {self.target_file}")
+        
+        # Initialize with default values for first run
+        self.latest_datetime = datetime.min  # Use minimum date for first run
+        
+        if self.target_file:
+            self._initialize_latest_file()
+            logger.info(f"Initialized WebsitePoller with target file: {self.target_file}")
+        else:
+            logger.info("First-time initialization - no existing files")
 
     def _check_target_file(self) -> bool:
-        """Check if our target file exists."""
+        """Check if our target file exists or if this is first-time initialization."""
+        if not self.target_file:
+            return True  # Allow first-time initialization
+            
         target_path = PROCESSED_DIR / self.target_file
         exists = target_path.exists()
         if not exists:
-            logger.error(
-                f"SECURITY CHECK FAILED: Target file {self.target_file} not found. "
-                "Cannot proceed with downloads to prevent abuse of the source website."
-            )
+            logger.warning(f"Target file {self.target_file} not found - reverting to first-time initialization mode")
+            self.target_file = None
+            self.latest_datetime = datetime.min
+            return True
         return exists
 
     def _initialize_latest_file(self):
         """Initialize the latest processed file datetime."""
         try:
-            self.latest_datetime = datetime.strptime(
-                self.target_file.split('_DDoSia')[0],
-                "%Y-%m-%d_%H-%M-%S"
-            )
-            logger.info(f"Using reference datetime: {self.latest_datetime}")
+            dt = self._parse_file_datetime(self.target_file)
+            if dt is not None:
+                self.latest_datetime = dt
+                logger.info(f"Using reference datetime: {self.latest_datetime}")
+            else:
+                self.latest_datetime = datetime.min
+                logger.warning("Could not parse datetime from file, using minimum date")
         except Exception as e:
             logger.error(f"Failed to initialize reference datetime: {e}")
-            raise
+            self.latest_datetime = datetime.min
 
     async def init_session(self):
         if not self.session:

@@ -17,14 +17,14 @@ for directory in [DATA_DIR, DOWNLOAD_DIR, PROCESSED_DIR, DB_DIR]:
 
 # File settings
 FILE_PATTERN = r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_DDoSia-target-list-full\.json"
-LATEST_FILE = "2025-02-07_12-20-02_DDoSia-target-list-full.json"  # Current latest file
+LATEST_FILE = None  # Will be set dynamically based on processed directory contents
 
 # Database settings
 DB_PATH = os.path.join(DB_DIR, 'neverhack.db')
 
 # API settings
 BASE_URL = "https://witha.name/data/"
-CHECK_INTERVAL = 3600  # Check every hour by default
+CHECK_INTERVAL = 120  # Check every 2 minutes for testing
 
 # API Configuration
 API_HOST = "localhost"
