@@ -1,0 +1,107 @@
+The Challenge:
+We need to build a tool with the following capabilities:
+
+Automated Ingestion: The tool should check the website at regular intervals (e.g., daily or at new intervals) to identify and download the latest target list files.
+
+Example: The most recent file is 2025-02-07_12-20-02_DDoSia-target-list-full.json.
+Database Storage: Once downloaded, the tool should ingest the target lists into a database where the data can be structured and queried efficiently.
+
+Threat Profiling & Correlation: Use the database to build detailed threat profiles. Enable querying to analyze past attacks and correlate data to identify patterns and trends.
+
+Monitoring & Alerts: Implement monitoring with alerting mechanisms to notify us when any target from our internal watchlist appears on the threat actor's list.
+
+Visualization Dashboard: Design and develop a React-based dashboard for visualizing:
+
+Past attack history
+Threat actor profiles
+Correlations and timeline-based analysis
+
+
+DDoS Target Intelligence Tracker
+Project Description
+The DDoS Target Intelligence Tracker is a tool designed to monitor, analyze, and track DDoS targeting patterns from a specific threat actor group through automated collection and analysis of their target lists. The tool ingests data from witha.name, which publishes reverse-engineered target lists from DDoSia malware, providing valuable threat intelligence about ongoing and planned DDoS attacks.
+Core Features
+
+Automated Data Collection
+
+
+Downloads JSON target lists from witha.name
+Tracks new target lists using timestamp-based filenames (e.g., 2025-02-07_12-20-02)
+Archives original JSON files for reference
+
+
+Target Intelligence Database
+
+SQLite-based storage for easy deployment
+Tracks target history including first and last seen dates
+Maps attack patterns and methods
+Geographic analysis using TLD grouping
+
+Analysis Capabilities
+
+Current targets overview: Shows active DDoS targets
+Historical tracking: When targets were first/last seen
+Attack pattern analysis: Methods and frequencies
+Geographic distribution through TLD analysis
+
+
+Search & Monitoring
+
+Quick target lookup functionality
+Target history tracking
+Watchlist monitoring for specific domains
+Basic alerting for watchlist matches
+
+Key Benefits
+Threat Intelligence
+
+Early warning of potential DDoS attacks
+Understanding of threat actor targeting patterns
+Historical attack data for pattern analysis
+
+
+Operational Value
+
+Quick identification of targeted assets
+Historical context for investigations
+Simple deployment with minimal dependencies
+
+
+Analysis Capabilities
+
+Target profiling and pattern recognition
+Geographic attack distribution
+Attack method evolution tracking
+
+Technical Details
+
+Language: Python
+Database: SQLite
+Data Source: witha.name JSON files
+Update Frequency: Daily checks for new target lists
+Storage: Local file system for JSON archives and SQLite database
+
+Primary Use Cases
+
+Security Operations
+
+
+Monitor for attacks against watched domains
+Track ongoing DDoS campaigns
+Investigate targeting patterns
+
+
+Threat Analysis
+
+
+Study attack method evolution
+Analyze targeting patterns
+Track campaign timelines
+
+
+Incident Response
+
+
+Quick lookup of target history
+Context for active incidents
+Pattern matching for campaign attribution
