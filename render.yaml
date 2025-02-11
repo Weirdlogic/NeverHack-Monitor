@@ -4,26 +4,27 @@ services:
     env: static
     buildCommand: npm run build
     startCommand: nginx -g 'daemon off;'
-    build:
-      dockerfilePath: docker/frontend/Dockerfile  # Corrected path
-      contextPath: ./frontend  # Docker context points to frontend directory
+    dockerfilePath: docker/frontend/Dockerfile
+    contextPath: ./frontend
     envVars:
-      VITE_API_URL: http://localhost:8000/api
-      VITE_WS_URL: ws://localhost:8000/ws
+      - key: VITE_API_URL
+        value: http://localhost:8000/api
+      - key: VITE_WS_URL
+        value: ws://localhost:8000/ws
     ports:
-      - 80
+      - port: 80
 
   - type: web
     name: backend-service
     env: python
-    build:
-      dockerfilePath: docker/backend/Dockerfile  # Corrected path
-      contextPath: ./Backend  # Docker context points to Backend directory
+    dockerfilePath: docker/backend/Dockerfile
+    contextPath: ./Backend
     startCommand: python src/run.py
     envVars:
-      DATABASE_URL: sqlite:///app/data/db/neverhack.db
+      - key: DATABASE_URL
+        value: sqlite:///app/data/db/neverhack.db
     ports:
-      - 8000
+      - port: 8000
     disk:
-      - name: app-data
-        mountPath: /app/data
+      name: app-data
+      mountPath: /app/data
