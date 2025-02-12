@@ -19,8 +19,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application source code from Backend/src to the container
 COPY ./Backend/src ./src
 
-# Create necessary directories inside the container
-RUN mkdir -p /app/data/processed /app/data/raw /app/data/db /app/logs
+# Copy the data directory from host to container
+COPY ./Backend/data ./data
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Expose the application port
 EXPOSE 3000
