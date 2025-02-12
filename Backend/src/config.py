@@ -31,4 +31,4 @@ CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', 120))  # Check every 2 minutes 
 
 # API Configuration
 API_HOST = os.getenv('API_HOST', 'localhost')
-API_PORT = int(os.getenv('API_PORT', 3000))  # Use API_PORT env var but default to 300
+API_PORT = int(os.getenv('API_PORT', 3000))  # Use API_PORT env var 
