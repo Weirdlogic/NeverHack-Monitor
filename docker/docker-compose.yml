@@ -8,8 +8,8 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_API_URL=http://localhost:3000/api
-      - VITE_WS_URL=ws://localhost:3000/ws
+      - VITE_API_URL=http://localhost:10000/api
+      - VITE_WS_URL=ws://localhost:10000/ws
     depends_on:
       - backend
 
@@ -18,7 +18,7 @@ services:
       context: ../Backend
       dockerfile: ../docker/backend/Dockerfile
     ports:
-      - "3000:3000"
+      - "10000:10000"
     volumes:
       - ../Backend/data:/app/data
       - ../Backend/logs:/app/logs

@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiUrl = env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
-  const wsUrl = env.VITE_WS_URL?.replace('/ws', '') || 'ws://localhost:3000'
+  const apiUrl = env.VITE_API_URL?.replace('/api', '') || 'http://localhost:10000'
+  const wsUrl = env.VITE_WS_URL?.replace('/ws', '') || 'ws://localhost:10000'
 
   return {
     plugins: [react()],
