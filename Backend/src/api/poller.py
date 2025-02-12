@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from api.database import get_session
 from api.data_ingestion import ingest_new_files
+from api.models import TargetList
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -21,21 +22,30 @@ LOGS_DIR = Path(__file__).parent.parent.parent / 'logs'
 logger = setup_logger('poller', LOGS_DIR / 'poller.log')
 
 def get_latest_processed_file() -> Optional[str]:
-    """Get the name of the most recently processed file."""
-    processed_files = list(PROCESSED_DIR.glob('*.json'))
-    if not processed_files:
+    """Get the name of the most recently processed file from raw directory."""
+    try:
+        # Get latest from raw directory - our source of truth
+        raw_files = list(DOWNLOAD_DIR.glob('*.json'))
+        if not raw_files:
+            logger.warning("No files found in raw directory")
+            return None
+            
+        latest_file = sorted(raw_files, key=lambda x: x.stat().st_mtime)[-1].name
+        logger.info(f"Found latest file in raw directory: {latest_file}")
+        return latest_file
+    except Exception as e:
+        logger.error(f"Error getting latest processed file: {e}")
         return None
-    return sorted(processed_files)[-1].name
 
 class WebsitePoller:
     def __init__(self):
         self.base_url = BASE_URL
         self.pattern = re.compile(FILE_PATTERN)
         self.session: Optional[aiohttp.ClientSession] = None
-        self.target_file = get_latest_processed_file()
         
-        # Initialize with default values for first run
-        self.latest_datetime = datetime.min  # Use minimum date for first run
+        # Initialize with latest processed file
+        self.target_file = get_latest_processed_file()
+        self.latest_datetime = datetime.min
         
         if self.target_file:
             self._initialize_latest_file()
@@ -44,18 +54,20 @@ class WebsitePoller:
             logger.info("First-time initialization - no existing files")
 
     def _check_target_file(self) -> bool:
-        """Check if our target file exists or if this is first-time initialization."""
+        """Check if file exists in either raw directory or database."""
         if not self.target_file:
             return True  # Allow first-time initialization
             
-        target_path = PROCESSED_DIR / self.target_file
-        exists = target_path.exists()
-        if not exists:
-            logger.warning(f"Target file {self.target_file} not found - reverting to first-time initialization mode")
-            self.target_file = None
-            self.latest_datetime = datetime.min
+        with get_session() as session:
+            db_exists = session.query(TargetList).filter_by(filename=self.target_file).first() is not None
+            file_exists = (DOWNLOAD_DIR / self.target_file).exists()  # Check raw directory instead of processed
+            
+            if not (db_exists or file_exists):
+                logger.warning(f"Target file {self.target_file} not found in DB or raw directory")
+                self.target_file = None
+                self.latest_datetime = datetime.min
+                return True
             return True
-        return exists
 
     def _initialize_latest_file(self):
         """Initialize the latest processed file datetime."""
@@ -81,26 +93,21 @@ class WebsitePoller:
             self.session = None
 
     def _parse_file_datetime(self, filename: str) -> Optional[datetime]:
-        """Parse datetime from filename with multiple format support."""
+        """Parse datetime from filename."""
         try:
-            date_part = filename.split('_DDoSia')[0]
-            formats = [
-                ("%Y-%m-%d_%H-%M-%S", r"^\d{4}-\d{2}-\d{2}"),
-                ("%d-%m-%Y_%H-%M-%S", r"^\d{2}-\d{2}-\d{4}")
-            ]
-            
-            for date_format, pattern in formats:
-                if re.match(pattern, date_part):
-                    try:
-                        return datetime.strptime(date_part, date_format)
-                    except ValueError:
-                        continue
+            match = re.search(r'(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})', filename)
+            if match:
+                # Parse datetime but don't attach timezone - we'll compare naive datetimes
+                dt = datetime.strptime(match.group(1), '%Y-%m-%d_%H-%M-%S')
+                logger.debug(f"Parsed datetime {dt} from filename {filename}")
+                return dt
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error parsing datetime from filename {filename}: {e}")
             return None
 
     async def get_available_files(self) -> List[str]:
-        """Get list of available files from website, filtering out old ones."""
+        """Get list of available files from website, filtering out processed ones."""
         if not self._check_target_file():
             logger.error("Security check failed - stopping file fetch")
             return []
@@ -112,24 +119,35 @@ class WebsitePoller:
                     soup = BeautifulSoup(content, 'html.parser')
                     files = []
                     skipped = 0
+                    skipped_reasons = {"exists": 0, "older": 0, "invalid": 0}
                     
-                    for link in soup.find_all('a'):
-                        filename = link.get('href')
-                        if not filename or not self.pattern.match(filename):
-                            continue
-                            
-                        file_date = self._parse_file_datetime(filename)
-                        if not file_date:
-                            continue
-                            
-                        if file_date <= self.latest_datetime:
-                            skipped += 1
-                            logger.debug(f"Skipping older file: {filename} ({file_date})")
-                            continue
-                            
-                        files.append(filename)
+                    with get_session() as session:
+                        for link in soup.find_all('a'):
+                            filename = link.get('href')
+                            if not filename or not self.pattern.match(filename):
+                                continue
+                                
+                            file_date = self._parse_file_datetime(filename)
+                            if not file_date:
+                                skipped_reasons["invalid"] += 1
+                                continue
+
+                            # Skip if file exists in raw directory (our source of truth)
+                            if (DOWNLOAD_DIR / filename).exists():
+                                skipped_reasons["exists"] += 1
+                                logger.debug(f"Skipping existing file in raw directory: {filename}")
+                                continue
+                                
+                            # Skip if older than latest processed (compare naive datetimes)
+                            if file_date <= self.latest_datetime:
+                                skipped_reasons["older"] += 1
+                                logger.debug(f"Skipping file {filename} - older than {self.latest_datetime}")
+                                continue
+                                
+                            files.append(filename)
                     
-                    logger.info(f"Found {len(files)} new files, skipped {skipped} older files")
+                    logger.info(f"Found {len(files)} new files to download")
+                    logger.info(f"Skipped files: {skipped_reasons}")
                     return sorted(files, key=self._parse_file_datetime)
                 else:
                     logger.error(f"Failed to get file list: {response.status}")
@@ -174,7 +192,7 @@ class WebsitePoller:
             return False
 
     async def process_downloaded_files(self):
-        """Process any downloaded files in the raw directory"""
+        """Process downloaded files and update latest file tracking"""
         try:
             with get_session() as session:
                 files_processed = ingest_new_files(session)

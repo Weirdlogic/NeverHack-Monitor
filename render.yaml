@@ -1,30 +1,31 @@
-services:
-  - type: web
-    name: frontend-service
-    env: static
-    buildCommand: npm run build
-    startCommand: nginx -g 'daemon off;'
-    dockerfilePath: docker/frontend/Dockerfile
-    contextPath: ./frontend
-    envVars:
-      - key: VITE_API_URL
-        value: http://localhost:8000/api
-      - key: VITE_WS_URL
-        value: ws://localhost:8000/ws
-    ports:
-      - port: 80
+Modify the initialization process of run.py to optimize file ingestion, database updates, and file downloads while minimizing redundant downloads.
 
-  - type: web
-    name: backend-service
-    env: python
-    dockerfilePath: docker/backend/Dockerfile
-    contextPath: ./Backend
-    startCommand: python src/run.py
-    envVars:
-      - key: DATABASE_URL
-        value: sqlite:///app/data/db/neverhack.db
-    ports:
-      - port: 8000
-    disk:
-      name: app-data
-      mountPath: /app/data
+Required Changes
+Compare raw folder with Database on Initialization
+
+When run.py initializes, it should scan the files in:
+
+
+C:\Users\adetunji\Documents\NeverHack Monitor\Backend\data\raw
+Compare these files with the existing database records. If a database ecisist or not 
+Any new files found in the raw folder but not in the database should be added to the database.
+Ingestion Process from processed Directory
+
+Process all files in:
+
+C:\Users\adetunji\Documents\NeverHack Monitor\Backend\data\processed
+Ingest the processed files into the database.
+After ingestion, delete all files in the processed directory.
+Maintaining Latest Ingestion Record
+
+Only keep a record of the latest ingestion in the processed directory.
+This record will be used for the polling mechanism to determine which files to download.
+Optimized Download Logic
+
+Before downloading new files, check the latest ingestion record.
+Compare it with available files on the source website.
+Only download newer files that are not already present in the database.
+This prevents unnecessary downloads and reduces the load on the source website.
+Reasoning Behind This Change
+
+The poller should then use this logic susbsequently.  Note taht obvilously o nthe fuirts initialisation, ther weould bne nothing in teh processed folder

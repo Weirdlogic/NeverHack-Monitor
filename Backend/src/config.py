@@ -5,15 +5,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Get the project root directory
-ROOT_DIR = Path(__file__).parent.parent
+# Get the Backend directory (two levels up from config.py)
+BACKEND_DIR = Path(__file__).parent.parent.absolute()
 
-# Base directories
-BASE_DIR = Path(__file__).parent.parent
-DATA_DIR = Path(os.getenv('DATA_DIR', BASE_DIR / 'data'))
-DOWNLOAD_DIR = Path(os.getenv('DOWNLOAD_DIR', DATA_DIR / 'raw'))
-PROCESSED_DIR = Path(os.getenv('PROCESSED_DIR', DATA_DIR / 'processed'))
-DB_DIR = Path(os.getenv('DB_DIR', DATA_DIR / 'db'))
+# Base directories - resolve relative to BACKEND_DIR
+DATA_DIR = BACKEND_DIR / os.getenv('DATA_DIR', 'data')
+DOWNLOAD_DIR = BACKEND_DIR / os.getenv('DOWNLOAD_DIR', 'data/raw')
+PROCESSED_DIR = BACKEND_DIR / os.getenv('PROCESSED_DIR', 'data/processed')
+DB_DIR = BACKEND_DIR / os.getenv('DB_DIR', 'data/db')
 
 # Create all required directories
 for directory in [DATA_DIR, DOWNLOAD_DIR, PROCESSED_DIR, DB_DIR]:
@@ -32,4 +31,4 @@ CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', 120))  # Check every 2 minutes 
 
 # API Configuration
 API_HOST = os.getenv('API_HOST', 'localhost')
-API_PORT = int(os.getenv('API_PORT', 8000))  # Use API_PORT env var but default to 8000
+API_PORT = int(os.getenv('API_PORT', 3000))  # Use API_PORT env var but default to 300

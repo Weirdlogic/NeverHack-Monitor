@@ -23,7 +23,7 @@ COPY ./Backend/src ./src
 RUN mkdir -p /app/data/processed /app/data/raw /app/data/db /app/logs
 
 # Expose the application port
-EXPOSE 8000
+EXPOSE 3000
 
 # Default command to run the app
 CMD ["python", "src/run.py"]

@@ -1,7 +1,10 @@
 import os
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, event
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 import sys
+import time
+import logging
 from pathlib import Path
 
 # Add parent directory to Python path
@@ -12,32 +15,42 @@ if (parent_dir not in sys.path):
 from api.models import Base
 from config import DB_PATH, DATA_DIR, DOWNLOAD_DIR, PROCESSED_DIR
 
-def init_database(drop_existing=False):
-    """Initialize the database and required directories"""
-    # Create all required directories
-    for directory in [DATA_DIR, DOWNLOAD_DIR, PROCESSED_DIR]:
-        directory.mkdir(exist_ok=True, parents=True)
-    
-    # Only remove database if drop_existing is True
-    if os.path.exists(DB_PATH) and drop_existing:
-        print("Removing existing database...")
-        os.remove(DB_PATH)
-    
-    # Create database directory if it doesn't exist
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
-    # Create database engine
-    engine = create_engine(f'sqlite:///{DB_PATH}')
-    
-    # Create tables if they don't exist
-    Base.metadata.create_all(engine)
-    
-    if drop_existing:
-        print("Created new database with fresh schema")
-    else:
-        print("Using existing database or created new if not present")
-    
-    return engine
+logger = logging.getLogger(__name__)
+
+def init_database(drop_existing=False, max_retries=3):
+    """Initialize the database with retry mechanism for concurrent access"""
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            engine = create_engine(f'sqlite:///{DB_PATH}')
+            
+            if drop_existing:
+                Base.metadata.drop_all(engine)
+                logger.info("Dropped existing tables")
+            
+            # Configure SQLite for better concurrent access
+            @event.listens_for(engine, 'connect')
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.close()
+            
+            Base.metadata.create_all(engine)
+            logger.info("Database initialized successfully")
+            return engine
+            
+        except OperationalError as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                logger.error(f"Failed to initialize database after {max_retries} attempts: {e}")
+                raise
+            logger.warning(f"Database initialization failed (attempt {retry_count}), retrying in 1 second...")
+            time.sleep(1)
+            
+        except Exception as e:
+            logger.error(f"Unexpected error during database initialization: {e}")
+            raise
 
 if __name__ == "__main__":
     engine = init_database()

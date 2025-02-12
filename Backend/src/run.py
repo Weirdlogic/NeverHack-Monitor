@@ -5,13 +5,15 @@ from multiprocessing import Process
 import sys
 from pathlib import Path
 from api.init_db import init_database
-from api.data_ingestion import ingest_new_files
+from api.data_ingestion import ingest_new_files, get_files_to_process, process_single_file
 from sqlalchemy.orm import Session
 import logging
 from config import PROCESSED_DIR, DOWNLOAD_DIR
 import os
+import shutil
+from api.database import get_session
+from api.models import TargetList
 
-# Add the src directory to the Python path
 sys.path.append(str(Path(__file__).parent))
 
 logging.basicConfig(level=logging.INFO)
@@ -29,22 +31,51 @@ def initialize_system():
     engine = init_database(drop_existing=False)
     logger.info("Database initialized successfully!")
     
-    # Check if processed directory is empty - but don't prevent initialization
-    if not any(PROCESSED_DIR.glob('*.json')):
-        logger.info("No files found in processed directory. Running first-time initialization.")
-    
-    # First process any existing files in raw directory
-    with Session(engine) as session:
+    # Process files in both raw and processed directories
+    with get_session() as session:
+        # First, process any unprocessed files from the raw directory
+        raw_files = get_files_to_process()
         files_processed = ingest_new_files(session)
         if files_processed > 0:
-            logger.info(f"Processed {files_processed} initial JSON files")
+            logger.info(f"Processed {files_processed} new files from raw directory")
+        
+        # Then process any files in the processed directory that aren't in the database
+        processed_files = list(PROCESSED_DIR.glob('*.json'))
+        for file in processed_files:
+            if not session.query(TargetList).filter_by(filename=file.name).first():
+                try:
+                    success, error = process_single_file(session, file)
+                    if success:
+                        session.commit()
+                        logger.info(f"Processed file from processed directory: {file.name}")
+                    else:
+                        session.rollback()
+                        logger.error(f"Failed to process {file.name} from processed directory: {error}")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"Error processing {file.name} from processed directory: {e}")
+        
+        # Keep only the latest file in the processed directory
+        processed_files = sorted(PROCESSED_DIR.glob('*.json'), key=lambda x: x.stat().st_mtime)
+        for file in processed_files[:-1]:
+            try:
+                file.unlink()
+                logger.info(f"Deleted old processed file: {file.name}")
+            except Exception as e:
+                logger.error(f"Failed to delete old processed file {file.name}: {e}")
     
     return engine
 
 def run_api():
     """Run the FastAPI server"""
-    port = int(os.environ.get("PORT", 8000))  # Use PORT env var but default to 8000
-    uvicorn.run("api.app:app", host="0.0.0.0", port=port, reload=True)
+    port = int(os.environ.get("PORT", 3000))
+    uvicorn.run(
+        "api.app:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        workers=1  # Adding explicit workers setting
+    )
 
 async def main():
     # Initialize system first

@@ -31,14 +31,23 @@ def extract_date_from_filename(filename: str) -> datetime:
     """Extract date from filename in the format YYYY-MM-DD_HH-MM-SS"""
     match = re.search(r'(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})', filename)
     if match:
-        return datetime.strptime(match.group(1), '%Y-%m-%d_%H-%M-%S').replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc)
+        # Parse as naive datetime for consistent comparison
+        dt = datetime.strptime(match.group(1), '%Y-%m-%d_%H-%M-%S')
+        ingestion_logger.debug(f"Extracted datetime {dt} from {filename}")
+        return dt
+    ingestion_logger.warning(f"Could not extract date from {filename}, using current time")
+    return datetime.now()
 
 def process_single_file(session: Session, filepath: Path) -> Tuple[bool, str]:
     """Process a single file and return success status and message"""
     try:
         with open(filepath, 'r') as f:
             data = json.load(f)
+        
+        # Check if file has already been processed
+        existing_target_list = session.query(TargetList).filter_by(filename=filepath.name).first()
+        if existing_target_list:
+            return False, "File already processed"
         
         # Create target list entry
         target_list = TargetList(filename=filepath.name)
@@ -72,15 +81,15 @@ def process_single_file(session: Session, filepath: Path) -> Tuple[bool, str]:
     except Exception as e:
         return False, str(e)
 
-def move_to_processed(filepath: Path) -> bool:
-    """Move a file to the processed directory"""
+def copy_to_processed(filepath: Path) -> bool:
+    """Copy a file to the processed directory, preserving the original"""
     try:
         dest_path = PROCESSED_DIR / filepath.name
-        shutil.move(str(filepath), str(dest_path))
-        ingestion_logger.info(f"Moved {filepath.name} to processed directory")
+        shutil.copy2(str(filepath), str(dest_path))
+        ingestion_logger.info(f"Copied {filepath.name} to processed directory")
         return True
     except Exception as e:
-        ingestion_logger.error(f"Failed to move {filepath.name}: {e}")
+        ingestion_logger.error(f"Failed to copy {filepath.name}: {e}")
         return False
 
 def get_files_to_process() -> List[Path]:
@@ -114,28 +123,31 @@ def ingest_new_files(session: Session) -> int:
                     # Try to commit the changes for this file
                     session.commit()
                     
-                    # Move file to processed directory after successful ingestion
-                    if move_to_processed(filepath):
+                    # Copy file to processed directory after successful ingestion
+                    if copy_to_processed(filepath):
                         processed_count += 1
                         ingestion_logger.info(f"Successfully ingested file: {filepath.name}")
                     else:
-                        session.rollback()
-                        ingestion_logger.error(f"Failed to move processed file: {filepath.name}")
+                        ingestion_logger.error(f"Failed to copy processed file: {filepath.name}")
                         
                 except Exception as e:
                     session.rollback()
                     ingestion_logger.error(f"Failed to commit changes for {filepath.name}: {e}")
             else:
-                ingestion_logger.error(f"Failed to process {filepath.name}: {error}")
+                if "already processed" in error:
+                    ingestion_logger.info(f"File {filepath.name} already processed")
+                else:
+                    ingestion_logger.error(f"Failed to process {filepath.name}: {error}")
         else:
             ingestion_logger.error(f"Failed to validate {filepath}")
     
-    # Clean up raw directory for successfully processed files
-    for file in DOWNLOAD_DIR.glob('*.json'):
+    # Delete all files in the processed directory except the latest one
+    processed_files = sorted(PROCESSED_DIR.glob('*.json'), key=lambda x: x.stat().st_mtime)
+    for file in processed_files[:-1]:
         try:
             file.unlink()
-            ingestion_logger.debug(f"Deleted raw file: {file.name}")
+            ingestion_logger.info(f"Deleted old processed file: {file.name}")
         except Exception as e:
-            ingestion_logger.error(f"Failed to delete raw file {file}: {e}")
+            ingestion_logger.error(f"Failed to delete old processed file {file.name}: {e}")
     
     return processed_count
