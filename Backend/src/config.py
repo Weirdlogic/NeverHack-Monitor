@@ -30,5 +30,5 @@ BASE_URL = os.getenv('BASE_URL', 'https://witha.name/data/')
 CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', 120))  # Check every 2 minutes for testing
 
 # API Configuration
-API_HOST = os.getenv('API_HOST', 'localhost')
-API_PORT = int(os.getenv('API_PORT', 3000))  # Use API_PORT env var 
+HOST = os.getenv('HOST', 'localhost')
+PORT = int(os.getenv('PORT', 3000))  # Use PORT env var 

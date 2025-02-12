@@ -68,11 +68,11 @@ def initialize_system():
 
 def run_api():
     """Run the FastAPI server"""
-    from config import API_PORT, API_HOST
+    from config import PORT, HOST
     uvicorn.run(
         "api.app:app",
-        host=API_HOST,
-        port=API_PORT,
+        host=HOST,
+        port=PORT,
         reload=True,
         workers=1
     )

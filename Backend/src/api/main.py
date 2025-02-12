@@ -101,10 +101,10 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    from config import API_PORT, API_HOST
+    from config import PORT, HOST
     uvicorn.run(
         app,
-        host=API_HOST,
-        port=API_PORT,
+        host=HOST,
+        port=PORT,
         workers=1
     )
