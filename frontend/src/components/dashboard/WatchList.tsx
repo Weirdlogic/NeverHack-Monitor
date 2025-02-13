@@ -45,7 +45,7 @@ const WatchList = () => {
   useEffect(() => {
     const pollInterval = setInterval(() => {
       refreshWatchlist();
-    }, 30000); // Poll every 30 seconds
+    }, 300000); // Poll every 30 seconds
 
     // Initial load
     refreshWatchlist();
@@ -100,7 +100,7 @@ const WatchList = () => {
     };
 
     fetchMatchData();
-    const matchInterval = setInterval(fetchMatchData, 30000); // Poll every 30 seconds
+    const matchInterval = setInterval(fetchMatchData, 300000); // Poll every 30 seconds
     return () => clearInterval(matchInterval);
   }, [watchlistItems]);
 
