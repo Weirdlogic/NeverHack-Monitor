@@ -16,22 +16,22 @@ const StatusCard = ({ label, value, Icon, delay }: {
     initial={{ scale: 0.9, opacity: 0 }}
     animate={{ scale: 1, opacity: 1 }}
     transition={{ delay, duration: 0.3 }}
-    className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
+    className="p-4 lg:p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
   >
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-600">{label}</p>
+        <p className="text-xs sm:text-sm font-medium text-gray-600">{label}</p>
         <motion.p 
           key={value}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold text-gray-900 mt-2"
+          className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-1 lg:mt-2"
         >
           {typeof value === 'number' ? value.toLocaleString() : '0'}
         </motion.p>
       </div>
-      <div className="p-3 bg-blue-50 rounded-lg">
-        <Icon className="w-6 h-6 text-blue-600" />
+      <div className="p-2 lg:p-3 bg-blue-50 rounded-lg">
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
       </div>
     </div>
   </motion.div>
@@ -81,7 +81,7 @@ const StatusGrid = () => {
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent" />
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
           {cards.map((card) => (
             <StatusCard key={card.label} {...card} />
           ))}

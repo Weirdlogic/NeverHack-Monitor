@@ -46,7 +46,7 @@ const PortHeatmap = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center justify-center h-48"
+          className="flex items-center justify-center h-32 sm:h-48"
         >
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent" />
         </motion.div>
@@ -55,7 +55,7 @@ const PortHeatmap = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-3 sm:grid-cols-5 gap-3"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3"
         >
           {portFrequency.map(([port, frequency], index) => (
             <Popover key={port} className="relative">
@@ -63,17 +63,17 @@ const PortHeatmap = () => {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="p-4 rounded-lg shadow-sm cursor-help w-full"
+                className="p-2 sm:p-4 rounded-lg shadow-sm cursor-help w-full text-center"
                 style={getColorIntensity(frequency)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <div className="text-center">
-                  <div className="text-xs opacity-80">{frequency} hits</div>
-                </div>
+                <div className="text-xs sm:text-sm font-medium">Port {port}</div>
+                <div className="text-xs opacity-80 mt-1">{frequency} hits</div>
               </PopoverButton>
-              <PopoverPanel className="absolute z-10 bg-white p-2 rounded shadow-lg text-sm mt-2">
-                Port {port}: {frequency} attacks detected
+              <PopoverPanel className="absolute z-10 bg-white p-2 rounded shadow-lg text-xs sm:text-sm mt-2 w-full min-w-[120px]">
+                <div className="font-medium">Port {port}</div>
+                <div className="text-gray-600">{frequency} attacks detected</div>
               </PopoverPanel>
             </Popover>
           ))}

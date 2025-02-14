@@ -104,12 +104,12 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
       {/* Main Target List */}
-      <div className="lg:col-span-1 bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="lg:col-span-1 bg-white rounded-lg shadow p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 lg:mb-6 gap-3">
           <div>
-            <h2 className="text-xl font-semibold">Active Targets</h2>
+            <h2 className="text-lg lg:text-xl font-semibold">Active Targets</h2>
             <p className="text-sm text-gray-500 mt-1">
               {groupedTargets.size} targets found
             </p>
@@ -118,7 +118,7 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(Number(e.target.value))}
-              className="rounded border-gray-300 text-sm"
+              className="rounded border-gray-300 text-sm min-w-[120px]"
             >
               <option value={1}>Last 24 hours</option>
               <option value={7}>Last 7 days</option>
@@ -154,25 +154,25 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => setSelectedHost(host)}
-                className={`w-full p-4 rounded-lg border transition-all ${
+                className={`w-full p-3 lg:p-4 rounded-lg border transition-all ${
                   selectedHost === host 
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-200 hover:border-blue-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium truncate" title={host}>{host}</span>
+                  <span className="font-medium truncate max-w-[180px] sm:max-w-none" title={host}>{host}</span>
                   <div className="flex items-center gap-2">
                     <div className={`h-2 w-2 rounded-full ${getStatusColor(target.attacks)}`} />
-                    <span className="text-sm text-gray-500">{target.attacks} attacks</span>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">{target.attacks} attacks</span>
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-gray-500 text-left">
-                  <div className="flex justify-between">
-                    <span>IP: {target.ip}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
+                    <span className="truncate">IP: {target.ip}</span>
                     <span>{target.type}</span>
                   </div>
-                  <div className="flex justify-between text-xs mt-1">
+                  <div className="flex flex-col sm:flex-row sm:justify-between text-xs mt-1 gap-1 sm:gap-0">
                     <span>Port: {target.port}</span>
                     <span>Method: {target.method}</span>
                   </div>
@@ -202,34 +202,36 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              <div className="p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center gap-2 text-green-600 mb-2">
-                  <Server className="h-5 w-5" />
-                  <span className="font-medium">Infrastructure Summary</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-600 mb-2">
+                    <Server className="h-5 w-5" />
+                    <span className="font-medium">Infrastructure Summary</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <div>Unique IPs: {getUniqueValues(selectedTargetDetails, 'ip').length}</div>
+                    <div>Ports: {selectedTargetDetails[0].summary.unique_ports.join(', ')}</div>
+                    <div>SSL/TLS: {selectedTargetDetails.some(t => t.use_ssl) ? 'Yes' : 'No'}</div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">
-                  <div>Unique IPs: {getUniqueValues(selectedTargetDetails, 'ip').length}</div>
-                  <div>Ports: {selectedTargetDetails[0].summary.unique_ports.join(', ')}</div>
-                  <div>SSL/TLS: {selectedTargetDetails.some(t => t.use_ssl) ? 'Yes' : 'No'}</div>
-                </div>
-              </div>
 
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <div className="flex items-center gap-2 text-purple-600 mb-2">
-                  <Activity className="h-5 w-5" />
-                  <span className="font-medium">Attack Vectors</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <div>Methods: {selectedTargetDetails[0].summary.unique_methods.join(', ')}</div>
-                  <div>Types: {getUniqueValues(selectedTargetDetails, 'type').join(', ')}</div>
-                  <div>Unique Paths: {selectedTargetDetails[0].summary.unique_paths.length}</div>
+                <div className="p-4 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-purple-600 mb-2">
+                    <Activity className="h-5 w-5" />
+                    <span className="font-medium">Attack Vectors</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <div>Methods: {selectedTargetDetails[0].summary.unique_methods.join(', ')}</div>
+                    <div>Types: {getUniqueValues(selectedTargetDetails, 'type').join(', ')}</div>
+                    <div>Unique Paths: {selectedTargetDetails[0].summary.unique_paths.length}</div>
+                  </div>
                 </div>
               </div>
 
               {/* Attack Instances */}
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-white rounded-lg shadow p-4 lg:p-6">
                 <h3 className="text-lg font-medium mb-4">Attack Instances</h3>
-                <div className="space-y-4">
+                <div className="space-y-4 overflow-x-auto">
                   {selectedTargetDetails?.map((target: DetailedTarget, index: number) => (
                     <motion.div 
                       key={`${target.host}-${target.method}-${index}`}

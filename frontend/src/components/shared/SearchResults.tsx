@@ -88,14 +88,14 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, isVisible, onClo
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-96 overflow-auto"
+            className="absolute z-50 w-[calc(100vw-2rem)] sm:w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-[60vh] sm:max-h-96 overflow-auto left-0 sm:left-auto right-0"
           >
             {Array.from(groupedResults.entries()).length > 0 ? (
               <div className="py-2 divide-y divide-gray-100">
                 {Array.from(groupedResults.entries()).map(([host, targets]) => (
                   <div key={host} className="px-2 py-3">
                     <div className="px-2 mb-2">
-                      <div className="text-sm font-medium text-gray-700">{host}</div>
+                      <div className="text-sm font-medium text-gray-700 truncate">{host}</div>
                       <div className="text-xs text-gray-500">
                         {targets[0].ip} • {targets.length} recorded activities
                       </div>
@@ -105,23 +105,25 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, isVisible, onClo
                         <motion.button
                           key={`${target.host}-${target.first_seen || Date.now()}-${target.ip}-${target.port}-${index}`}
                           onClick={() => handleResultClick(target)}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 rounded-md flex items-center gap-3"
+                          className="w-full px-3 py-2 text-left hover:bg-gray-50 rounded-md flex items-start gap-3"
                           whileHover={{ scale: 1.01 }}
                         >
                           {getIcon(target.type)}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3 w-3 text-gray-400" />
-                              <span className="text-xs text-gray-600">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <Calendar className="h-3 w-3 text-gray-400 hidden sm:block" />
+                              <span className="text-xs text-gray-600 truncate">
                                 {formatDate(target.first_seen)}
                               </span>
                             </div>
-                            <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                              <Hash className="h-3 w-3" />
-                              <span>{target.attacks || 0} attacks</span>
-                              <span>•</span>
+                            <div className="text-xs text-gray-500 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
+                              <div className="flex items-center gap-1">
+                                <Hash className="h-3 w-3" />
+                                <span>{target.attacks || 0} attacks</span>
+                              </div>
+                              <span className="hidden sm:inline">•</span>
                               <span>{target.attack_stats?.methods_used?.length || 0} methods</span>
-                              <span>•</span>
+                              <span className="hidden sm:inline">•</span>
                               <span>{target.attack_stats?.ports_targeted?.length || 0} ports</span>
                             </div>
                           </div>

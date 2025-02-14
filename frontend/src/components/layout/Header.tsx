@@ -23,8 +23,11 @@ const NotificationIcon = ({ type }: { type: Notification['type'] }) => {
   }
 };
 
-const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+const Header = ({ onMenuClick }: HeaderProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications, clearNotification } = useNotificationStore();
 
@@ -61,18 +64,18 @@ const Header = () => {
   };
 
   return (
-    <header className="relative bg-white border-b px-4 py-3">
+    <header className="relative bg-white border-b px-3 sm:px-4 py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button 
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={onMenuClick}
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-              No-Name Monitor by Cybers
+            <h1 className="text-base sm:text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 truncate">
+              No-Name Monitor
             </h1>
           </div>
           <div className="hidden md:flex items-center gap-4">
@@ -89,7 +92,7 @@ const Header = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <div className="hidden md:block w-96">
             <SearchBar />
           </div>
@@ -105,7 +108,7 @@ const Header = () => {
               )}
             </button>
 
-            <div className="absolute right-0 mt-2 w-96 z-50">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 z-50">
               <Transition
                 show={showNotifications}
                 enter="transition ease-out duration-200"
@@ -135,20 +138,22 @@ const Header = () => {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="p-3 hover:bg-gray-50 rounded-lg cursor-pointer group relative"
+                          className="p-2 sm:p-3 hover:bg-gray-50 rounded-lg cursor-pointer group relative text-left"
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <NotificationIcon type={notification.type} />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-600">{notification.message}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">{notification.message}</p>
                               {notification.metadata && (
                                 <div className="mt-1 text-xs text-gray-400">
-                                  {notification.metadata.host && <span>Host: {notification.metadata.host}</span>}
+                                  {notification.metadata.host && (
+                                    <div className="truncate">Host: {notification.metadata.host}</div>
+                                  )}
                                   {notification.metadata.pattern && (
-                                    <span className="ml-2">Pattern: {notification.metadata.pattern}</span>
+                                    <div className="truncate">Pattern: {notification.metadata.pattern}</div>
                                   )}
                                   {notification.metadata.port && (
-                                    <span className="ml-2">Port: {notification.metadata.port}</span>
+                                    <div>Port: {notification.metadata.port}</div>
                                   )}
                                 </div>
                               )}
@@ -161,7 +166,7 @@ const Header = () => {
                                 e.stopPropagation();
                                 clearNotification(notification.id);
                               }}
-                              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600"
+                              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1"
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -185,17 +190,17 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Search */}
+      {/* Mobile Search and Status */}
       <AnimatePresence>
-        {isMenuOpen && (
+        {showNotifications && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden mt-3"
+            className="md:hidden mt-3 space-y-3"
           >
             <SearchBar />
-            <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-4">
               <StatusIndicator 
                 status={apiHealth?.status === 'ok' ? 'online' : 'error'} 
                 label="API" 
