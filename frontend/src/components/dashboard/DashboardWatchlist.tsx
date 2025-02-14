@@ -12,7 +12,8 @@ interface WatchlistItem {
   match_count?: number;
 }
 
-const WatchList = () => {
+// Compact version specifically for dashboard widget
+const DashboardWatchlist = () => {
   const [items, setItems] = useState<WatchlistItem[]>([]);
 
   useEffect(() => {
@@ -95,4 +96,4 @@ const WatchList = () => {
   );
 };
 
-export default WatchList;
+export default DashboardWatchlist;
