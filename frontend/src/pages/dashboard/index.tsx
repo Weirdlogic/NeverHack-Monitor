@@ -1,12 +1,9 @@
-import { useLocation } from 'react-router-dom';
 import StatusGrid from '../../components/dashboard/StatusGrid';
 import AttackOverview from '../../components/dashboard/AttackTimeline';
 import PortHeatmap from '../../components/dashboard/PortHeatmap';
 import DashboardWatchlist from '../../components/dashboard/DashboardWatchlist';
 
 const DashboardPage = () => {
-  const location = useLocation();
-
   return (
     <div className="space-y-6">
       {/* Header */}
