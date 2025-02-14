@@ -2,14 +2,10 @@ import { useLocation } from 'react-router-dom';
 import StatusGrid from '../../components/dashboard/StatusGrid';
 import AttackOverview from '../../components/dashboard/AttackTimeline';
 import PortHeatmap from '../../components/dashboard/PortHeatmap';
-import Analysis from './analysis';
 import WatchList from '../../components/dashboard/WatchList';
-import { Target } from '../../types/api.types';
 
 const DashboardPage = () => {
   const location = useLocation();
-  const selectedTarget = location.state?.selectedTarget as Target;
-  const targetDetails = location.state?.targetDetails;
 
   return (
     <div className="space-y-6">
@@ -32,33 +28,29 @@ const DashboardPage = () => {
       {/* Status Grid */}
       <StatusGrid />
 
-      {/* Attack Timeline and Port Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      {/* Primary Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Attack Timeline - Takes 2/3 width */}
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-4">Attack Timeline</h2>
           <AttackOverview />
         </div>
         
+        {/* Recent Alerts - Takes 1/3 width */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <h2 className="text-lg font-semibold mb-4">Port Distribution</h2>
-          <PortHeatmap />
+          <h2 className="text-lg font-semibold mb-4">Recent Alerts</h2>
+          <WatchList />
         </div>
       </div>
 
-      {/* Target Analysis */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <h2 className="text-lg font-semibold mb-4">Target Analysis</h2>
-        <Analysis initialTarget={selectedTarget} initialDetails={targetDetails} />
-      </div>
-
-      {/* Recent Activity */}
+      {/* Bottom Section - Port Distribution (Smaller) */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
-          <button className="text-sm text-blue-600 hover:text-blue-800">View all</button>
+          <h2 className="text-lg font-semibold">Port Distribution</h2>
+          <button className="text-sm text-blue-600 hover:text-blue-800">View Details</button>
         </div>
-        <div className="space-y-4">
-          <WatchList />
+        <div className="h-[200px]"> {/* Reduced height */}
+          <PortHeatmap />
         </div>
       </div>
     </div>
