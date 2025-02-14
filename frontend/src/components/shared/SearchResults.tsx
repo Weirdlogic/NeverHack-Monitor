@@ -5,18 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Server, Globe, Activity, Calendar, Hash } from 'lucide-react';
 import { getTargetDetails } from '../../services/api';
 
-interface DetailedTarget extends Target {
-  summary: {
-    unique_ports: number[];
-    unique_methods: string[];
-    unique_paths: string[];
-  };
-  use_ssl?: boolean;
-  body?: {
-    value: string;
-  };
-}
-
 interface SearchResultsProps {
   results: Target[];
   isVisible: boolean;
