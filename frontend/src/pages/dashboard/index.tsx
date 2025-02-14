@@ -1,9 +1,20 @@
+import { useLocation } from 'react-router-dom';
 import StatusGrid from '../../components/dashboard/StatusGrid';
 import AttackOverview from '../../components/dashboard/AttackTimeline';
 import PortHeatmap from '../../components/dashboard/PortHeatmap';
 import DashboardWatchlist from '../../components/dashboard/DashboardWatchlist';
+import type { Target } from '../../types/api.types';
+
+interface LocationState {
+  selectedTarget?: Target;
+  targetDetails?: Target[];
+  fromSearch?: boolean;
+}
 
 const DashboardPage = () => {
+  const location = useLocation();
+  const state = location.state as LocationState;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -32,7 +43,7 @@ const DashboardPage = () => {
           {/* Attack Timeline */}
           <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold mb-4">Attack Timeline</h2>
-            <AttackOverview />
+            <AttackOverview initialTarget={state?.selectedTarget} initialDetails={state?.targetDetails} />
           </div>
           
           {/* Port Distribution */}

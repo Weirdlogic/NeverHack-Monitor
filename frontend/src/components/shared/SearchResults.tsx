@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Target } from '../../types/api.types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Server, Globe, Activity, Calendar, Hash } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { getTargetDetails } from '../../services/api';
 
 interface DetailedTarget extends Target {
@@ -26,25 +25,22 @@ interface SearchResultsProps {
 
 const SearchResults: React.FC<SearchResultsProps> = ({ results, isVisible, onClose }) => {
   const navigate = useNavigate();
-  const [selectedHost, setSelectedHost] = React.useState<string | null>(null);
   
-  const { data: selectedTargetDetails } = useQuery<DetailedTarget[]>({
-    queryKey: ['target-details', selectedHost],
-    queryFn: async () => selectedHost ? await getTargetDetails(selectedHost) as DetailedTarget[] : [],
-    enabled: !!selectedHost,
-    staleTime: 10000,
-  });
-
-  const handleResultClick = (target: Target) => {
-    setSelectedHost(target.host);
-    navigate('/', { 
-      state: { 
-        selectedTarget: target,
-        targetDetails: selectedTargetDetails,
-        fromSearch: true
-      } 
-    });
-    onClose();
+  const handleResultClick = async (target: Target) => {
+    try {
+      // Wait for the details to be fetched
+      const details = await getTargetDetails(target.host);
+      navigate('/', { 
+        state: { 
+          selectedTarget: target,
+          targetDetails: details,
+          fromSearch: true
+        } 
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to load target details:', error);
+    }
   };
 
   const formatDate = (dateStr?: string) => {

@@ -20,8 +20,13 @@ interface DetailedTarget extends Target {
   };
 }
 
-const AttackOverview = () => {
-  const [selectedHost, setSelectedHost] = React.useState<string | null>(null);
+interface AttackOverviewProps {
+  initialTarget?: Target;
+  initialDetails?: DetailedTarget[];
+}
+
+const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialDetails }) => {
+  const [selectedHost, setSelectedHost] = React.useState<string | null>(initialTarget?.host || null);
 
   const { data: methods } = useQuery<Record<string, number>>({
     queryKey: ['attackMethods'],
@@ -32,7 +37,8 @@ const AttackOverview = () => {
   const { data: recentTargets } = useQuery<Target[]>({
     queryKey: ['recentTargets'],
     queryFn: getRecentTargets,
-    refetchInterval: 15000
+    refetchInterval: 15000,
+    initialData: initialTarget ? [initialTarget] : undefined
   });
 
   const { data: selectedTargetDetails } = useQuery<DetailedTarget[]>({
@@ -40,6 +46,7 @@ const AttackOverview = () => {
     queryFn: async () => selectedHost ? await getTargetDetails(selectedHost) as DetailedTarget[] : [],
     enabled: !!selectedHost,
     staleTime: 10000,
+    initialData: initialDetails
   });
 
   // Group targets by host
