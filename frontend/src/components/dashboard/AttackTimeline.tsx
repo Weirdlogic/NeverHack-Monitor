@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getRecentTargets, getAttackMethods, getTargetDetails } from '../../services/api';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Shield, AlertTriangle, Server, Activity } from 'lucide-react';
 import type { Target } from '../../types/api.types';
@@ -53,7 +53,9 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
   const groupedTargets = React.useMemo(() => {
     if (!recentTargets) return new Map<string, Target>();
     
-    return recentTargets.reduce((acc: Map<string, Target>, target: Target) => {
+    const targets = initialTarget ? [initialTarget, ...recentTargets.filter(t => t.host !== initialTarget.host)] : recentTargets;
+    
+    return targets.reduce((acc: Map<string, Target>, target: Target) => {
       const processedTarget = {
         ...target,
         attacks: target.attacks || 0,
@@ -67,7 +69,11 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
       acc.set(target.host, processedTarget);
       return acc;
     }, new Map<string, Target>());
-  }, [recentTargets]);
+  }, [recentTargets, initialTarget]);
+
+  // Safely access target details
+  const targetDetails = selectedTargetDetails || [];
+  const firstTarget = targetDetails[0];
 
   const methodsData = React.useMemo(() => {
     if (!methods) return [];
@@ -86,10 +92,94 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
     return 'Low';
   };
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'Unknown';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Search Result Details */}
+      {initialTarget && targetDetails.length > 0 && (
+        <motion.div
+          key="search-details"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-6 rounded-lg shadow-sm"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Search Result Details</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="p-4 bg-green-50 rounded-lg">
+              <div className="flex items-center gap-2 text-green-600 mb-2">
+                <Server className="h-5 w-5" />
+                <span className="font-medium">Infrastructure</span>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div>Host: {firstTarget?.host || 'N/A'}</div>
+                <div>Ports: {firstTarget?.summary?.unique_ports?.join(', ') || 'N/A'}</div>
+                <div>SSL/TLS: {targetDetails.some((t: DetailedTarget) => t.use_ssl) ? 'Yes' : 'No'}</div>
+                <div>IP: {firstTarget?.ip || 'N/A'}</div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="flex items-center gap-2 text-purple-600 mb-2">
+                <Activity className="h-5 w-5" />
+                <span className="font-medium">Attack Vectors</span>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div>Methods: {firstTarget?.summary?.unique_methods?.join(', ') || 'N/A'}</div>
+                <div>Type: {firstTarget?.type || 'N/A'}</div>
+                <div>Unique Paths: {firstTarget?.summary?.unique_paths?.length || 0}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Attack Timeline */}
+          <div className="mt-6">
+            <h4 className="text-base font-medium text-gray-900 mb-4">Recent Activity</h4>
+            <div className="space-y-3">
+              {targetDetails.map((detail: DetailedTarget, index: number) => (
+                <div 
+                  key={`${detail.host}-${detail.method}-${index}`}
+                  className="p-4 border rounded-lg bg-gray-50"
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-500">Method</div>
+                      <div className="font-mono text-sm">{detail.method}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-500">Port</div>
+                      <div className="font-mono text-sm">{detail.port}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-sm font-medium text-gray-500">Time</div>
+                      <div className="font-mono text-sm">{formatDate(detail.first_seen)}</div>
+                    </div>
+                    {detail.path && (
+                      <div className="col-span-2">
+                        <div className="text-sm font-medium text-gray-500">Path</div>
+                        <div className="font-mono text-sm truncate">{detail.path}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Attack Methods Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Attack Methods Distribution */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,10 +198,7 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
                     outerRadius={140}
                     paddingAngle={5}
                     dataKey="value"
-                    label={({ percent }) => 
-                      `${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={true}
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                   >
                     {methodsData.map((_, index) => (
                       <Cell 
@@ -132,14 +219,7 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
                       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                     }}
                   />
-                  <Legend 
-                    layout="horizontal" 
-                    verticalAlign="bottom" 
-                    align="center"
-                    wrapperStyle={{
-                      paddingTop: '20px'
-                    }}
-                  />
+                  <Legend layout="horizontal" verticalAlign="bottom" align="center" />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -157,12 +237,10 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
           className="bg-white p-6 rounded-lg shadow-sm"
         >
           <h3 className="text-lg font-medium mb-4">Active Targets</h3>
-          <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto">
+          <div className="space-y-3 max-h-[450px] overflow-y-auto">
             {Array.from(groupedTargets.entries()).map(([host, target]) => (
               <motion.button
                 key={host}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
                 onClick={() => setSelectedHost(host)}
                 className={`w-full p-4 rounded-lg border transition-all ${
                   selectedHost === host 
@@ -178,8 +256,8 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
                       <Shield className="w-5 h-5 text-blue-500" />
                     )}
                     <div>
-                      <p className="font-medium truncate" title={host}>{host}</p>
-                      <p className="text-sm text-gray-500">{target.ip}</p>
+                      <p className="font-medium text-left truncate" title={host}>{host}</p>
+                      <p className="text-sm text-gray-500 text-left">{target.ip}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -206,53 +284,6 @@ const AttackOverview: React.FC<AttackOverviewProps> = ({ initialTarget, initialD
           </div>
         </motion.div>
       </div>
-
-      {/* Target Details Panel */}
-      <AnimatePresence mode="wait">
-        {selectedHost && selectedTargetDetails && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="bg-white p-6 rounded-lg shadow-sm space-y-4"
-          >
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Target Details</h3>
-              <button 
-                onClick={() => setSelectedHost(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center gap-2 text-green-600 mb-2">
-                  <Server className="h-5 w-5" />
-                  <span className="font-medium">Infrastructure</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <div>Host: {selectedHost}</div>
-                  <div>Ports: {selectedTargetDetails[0]?.summary?.unique_ports?.join(', ')}</div>
-                  <div>SSL/TLS: {selectedTargetDetails.some(t => t.use_ssl) ? 'Yes' : 'No'}</div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <div className="flex items-center gap-2 text-purple-600 mb-2">
-                  <Activity className="h-5 w-5" />
-                  <span className="font-medium">Attack Vectors</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <div>Methods: {selectedTargetDetails[0]?.summary?.unique_methods?.join(', ')}</div>
-                  <div>Unique Paths: {selectedTargetDetails[0]?.summary?.unique_paths?.length || 0}</div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { getActiveTargets, getTargetDetails } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Server, Activity, AlertCircle, Loader2 } from 'lucide-react';
 import type { Target } from '../../types/api.types';
+import { useLocation } from 'react-router-dom';
 
 interface DetailedTarget extends Target {
   summary: {
@@ -17,6 +18,12 @@ interface DetailedTarget extends Target {
   };
 }
 
+interface LocationState {
+  selectedTarget?: Target;
+  targetDetails?: DetailedTarget[];
+  fromSearch?: boolean;
+}
+
 const getUniqueValues = (array: DetailedTarget[], key: keyof DetailedTarget): string[] => {
   const values = array.map(item => String(item[key])); // Convert all values to strings
   return Array.from(new Set(values));
@@ -27,8 +34,10 @@ interface AnalysisProps {
   initialDetails?: DetailedTarget[];
 }
 
-const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) => {
-  const [selectedHost, setSelectedHost] = React.useState<string | null>(initialTarget?.host || null);
+const Analysis: React.FC<AnalysisProps> = () => {
+  const location = useLocation();
+  const state = location.state as LocationState;
+  const [selectedHost, setSelectedHost] = React.useState<string | null>(state?.selectedTarget?.host || null);
   const [timeRange, setTimeRange] = React.useState(7); // Days
 
   const { data: targets, isLoading, error, refetch } = useQuery({
@@ -37,7 +46,7 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
     refetchInterval: 5000, // Poll every 5 seconds
     retry: 3,
     staleTime: 1000, // Consider data fresh for 1 second
-    initialData: initialTarget ? [initialTarget] : undefined,
+    initialData: state?.selectedTarget ? [state.selectedTarget] : undefined,
   });
 
   const { data: selectedTargetDetails, isLoading: isLoadingDetails } = useQuery<DetailedTarget[]>({
@@ -45,7 +54,7 @@ const Analysis: React.FC<AnalysisProps> = ({ initialTarget, initialDetails }) =>
     queryFn: async () => selectedHost ? await getTargetDetails(selectedHost) as DetailedTarget[] : [],
     enabled: !!selectedHost,
     staleTime: 10000,
-    initialData: initialDetails,
+    initialData: state?.targetDetails as DetailedTarget[],
   });
 
   // Group targets by host and ensure we have all fields

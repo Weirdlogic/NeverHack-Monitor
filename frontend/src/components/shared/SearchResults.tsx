@@ -18,12 +18,14 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, isVisible, onClo
     try {
       // Wait for the details to be fetched
       const details = await getTargetDetails(target.host);
-      navigate('/', { 
+      // Navigate to analysis page instead since it handles target details better
+      navigate('/analysis', { 
         state: { 
           selectedTarget: target,
           targetDetails: details,
           fromSearch: true
-        } 
+        },
+        replace: true // Use replace to allow back button to work properly
       });
       onClose();
     } catch (error) {

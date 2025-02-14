@@ -5,9 +5,21 @@ import PortHeatmap from '../../components/dashboard/PortHeatmap';
 import DashboardWatchlist from '../../components/dashboard/DashboardWatchlist';
 import type { Target } from '../../types/api.types';
 
+interface DetailedTarget extends Target {
+  summary?: {
+    unique_ports: number[];
+    unique_methods: string[];
+    unique_paths: string[];
+  };
+  use_ssl?: boolean;
+  body?: {
+    value: string;
+  };
+}
+
 interface LocationState {
   selectedTarget?: Target;
-  targetDetails?: Target[];
+  targetDetails?: DetailedTarget[];
   fromSearch?: boolean;
 }
 
@@ -43,7 +55,14 @@ const DashboardPage = () => {
           {/* Attack Timeline */}
           <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold mb-4">Attack Timeline</h2>
-            <AttackOverview initialTarget={state?.selectedTarget} initialDetails={state?.targetDetails} />
+            {state?.fromSearch ? (
+              <AttackOverview 
+                initialTarget={state.selectedTarget} 
+                initialDetails={state.targetDetails}
+              />
+            ) : (
+              <AttackOverview />
+            )}
           </div>
           
           {/* Port Distribution */}
