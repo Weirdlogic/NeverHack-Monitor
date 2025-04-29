@@ -19,5 +19,4 @@ services:
       dockerfile: docker/frontend/Dockerfile
     volumes:
       - ../frontend/dist:/usr/share/nginx/html
-    ports:
-      - "80:80"
+    # Removed ports: "80:80" — frontend will no longer grab port 80
