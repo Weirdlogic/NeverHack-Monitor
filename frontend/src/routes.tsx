@@ -5,6 +5,7 @@ import Analysis from './pages/dashboard/analysis';
 import SecurityPage from './pages/security';
 import WatchlistPage from './pages/dashboard/watchlist';
 import MonitorPage from './pages/monitor';
+import StatsPage from './pages/stats';
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
       {
         path: 'watchlist',
         element: <WatchlistPage />,
+      },
+      {
+        path: 'stats',
+        element: <StatsPage />,
       }
     ],
   },

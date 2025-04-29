@@ -29,3 +29,7 @@ This prevents unnecessary downloads and reduces the load on the source website.
 Reasoning Behind This Change
 
 The poller should then use this logic susbsequently.  Note taht obvilously o nthe fuirts initialisation, ther weould bne nothing in teh processed folder
+
+apt-get update && apt-get install -y curl net-tools procps
+docker exec -it docker-backend-1 sh
+curl http://localhost:10000

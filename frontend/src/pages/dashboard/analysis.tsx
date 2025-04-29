@@ -39,10 +39,12 @@ const Analysis: React.FC<AnalysisProps> = () => {
   const state = location.state as LocationState;
   const [selectedHost, setSelectedHost] = React.useState<string | null>(state?.selectedTarget?.host || null);
   const [timeRange, setTimeRange] = React.useState(7); // Days
+  const [customDate, setCustomDate] = React.useState<string | null>(null); // New state for custom date
+
 
   const { data: targets, isLoading, error, refetch } = useQuery({
-    queryKey: ['active-targets', timeRange],
-    queryFn: () => getActiveTargets(timeRange),
+    queryKey: ['active-targets', timeRange, customDate], // Include customDate in queryKey
+    queryFn: () => customDate ? getActiveTargets({ date: customDate }) : getActiveTargets({ days: timeRange }), // Fetch based on customDate or timeRange
     refetchInterval: 5000, // Poll every 5 seconds
     retry: 3,
     staleTime: 1000, // Consider data fresh for 1 second
@@ -94,6 +96,14 @@ const Analysis: React.FC<AnalysisProps> = () => {
     refetch();
   };
 
+  const handleCustomDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomDate(event.target.value); // Update custom date state
+  };
+
+  const handleClearCustomDate = () => {
+    setCustomDate(null); // Clear custom date
+  };
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -128,11 +138,27 @@ const Analysis: React.FC<AnalysisProps> = () => {
               value={timeRange}
               onChange={(e) => setTimeRange(Number(e.target.value))}
               className="rounded border-gray-300 text-sm min-w-[120px]"
+              disabled={!!customDate} // Disable if custom date is set
             >
               <option value={1}>Last 24 hours</option>
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
             </select>
+            <input 
+              type="date" 
+              value={customDate || ''} 
+              onChange={handleCustomDateChange} 
+              className="rounded border-gray-300 text-sm"
+            />
+            {customDate && (
+              <button 
+                onClick={handleClearCustomDate} 
+                className="p-2 text-gray-500 hover:text-blue-500"
+                title="Clear custom date"
+              >
+                Clear
+              </button>
+            )}
             <button 
               onClick={handleRefresh} 
               className="p-2 text-gray-500 hover:text-blue-500"

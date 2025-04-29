@@ -71,8 +71,8 @@ def run_api():
     from config import PORT, HOST
     uvicorn.run(
         "api.app:app",
-        host=HOST,
-        port=PORT,
+        host=HOST or "0.0.0.0",
+        port=int(PORT or 10000),
         reload=True,
         workers=1
     )

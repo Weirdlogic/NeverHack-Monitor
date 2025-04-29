@@ -318,69 +318,82 @@ async def get_active_targets(days: int = Query(7, ge=1)) -> List[Dict[str, Any]]
 
 @router.get("/targets/active")
 async def get_active_targets(
-    days: int = Query(7, ge=1),
+    days: int = Query(None, ge=1, le=365),  # Optional days parameter
+    date: str = Query(None),  # Optional exact date parameter
     limit: int = Query(50, ge=1, le=100)
 ) -> List[Dict[str, Any]]:
     """
-    Get all active targets from the last N days with attack statistics
-    - days: Look back period (default: 7 days)
+    Get all active targets from the last N days or a specific date with attack statistics
+    - days: Look back period (default: None)
+    - date: Specific date in YYYY-MM-DD format (default: None)
     - limit: Maximum number of results (default: 50)
     """
     try:
         with get_session() as session:
-            since = datetime.now() - timedelta(days=days)
-            
-            # Get base query for recent targets
-            base_query = session.query(Target).filter(
-                Target.first_seen >= since
-            )
-            
+            if date:
+                # Parse the exact date and filter targets for that day
+                exact_date = datetime.strptime(date, "%Y-%m-%d")
+                start_of_day = exact_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_of_day = exact_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                base_query = session.query(Target).filter(
+                    Target.first_seen >= start_of_day,
+                    Target.first_seen <= end_of_day
+                )
+            elif days:
+                # Calculate the start date based on the number of days
+                since = datetime.now() - timedelta(days=days)
+                base_query = session.query(Target).filter(
+                    Target.first_seen >= since
+                )
+            else:
+                raise HTTPException(status_code=400, detail="Either 'days' or 'date' must be provided")
+
             # Get unique hosts and their latest activity
             hosts = session.query(
                 Target.host,
                 func.max(Target.first_seen).label('latest_seen')
             ).filter(
-                Target.first_seen >= since
+                base_query.exists()
             ).group_by(Target.host).order_by(
                 desc('latest_seen')
             ).limit(limit).all()
-            
+
             results = []
             for host, _ in hosts:
                 # Get the most recent target record for this host
                 latest_target = base_query.filter(
                     Target.host == host
                 ).order_by(desc(Target.first_seen)).first()
-                
+
                 if latest_target:
                     # Get attack statistics
                     attack_count = session.query(func.count(Target.id))\
                         .filter(Target.host == host)\
-                        .filter(Target.first_seen >= since)\
+                        .filter(base_query.exists())\
                         .scalar()
-                    
+
                     # Get unique methods used
                     methods = session.query(distinct(Target.method))\
                         .filter(Target.host == host)\
-                        .filter(Target.first_seen >= since)\
+                        .filter(base_query.exists())\
                         .all()
-                    
+
                     # Get unique ports targeted
                     ports = session.query(distinct(Target.port))\
                         .filter(Target.host == host)\
-                        .filter(Target.first_seen >= since)\
+                        .filter(base_query.exists())\
                         .all()
-                    
+
                     # Get recent paths
                     recent_paths = session.query(distinct(Target.path))\
                         .filter(Target.host == host)\
                         .filter(Target.path != None)\
                         .filter(Target.path != '')\
-                        .filter(Target.first_seen >= since)\
+                        .filter(base_query.exists())\
                         .order_by(desc(Target.first_seen))\
                         .limit(5)\
                         .all()
-                    
+
                     results.append({
                         "host": latest_target.host,
                         "ip": latest_target.ip,
@@ -397,9 +410,9 @@ async def get_active_targets(
                             "recent_paths": [p[0] for p in recent_paths if p[0]]
                         }
                     })
-            
+
             return results
-            
+
     except SQLAlchemyError as e:
         print(f"Database error: {str(e)}")
         raise HTTPException(status_code=500, detail="Database error")

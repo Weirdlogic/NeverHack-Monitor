@@ -1,32 +1,7 @@
-import { useLocation } from 'react-router-dom';
 import StatusGrid from '../../components/dashboard/StatusGrid';
-import AttackOverview from '../../components/dashboard/AttackTimeline';
-import PortHeatmap from '../../components/dashboard/PortHeatmap';
 import DashboardWatchlist from '../../components/dashboard/DashboardWatchlist';
-import type { Target } from '../../types/api.types';
-
-interface DetailedTarget extends Target {
-  summary?: {
-    unique_ports: number[];
-    unique_methods: string[];
-    unique_paths: string[];
-  };
-  use_ssl?: boolean;
-  body?: {
-    value: string;
-  };
-}
-
-interface LocationState {
-  selectedTarget?: Target;
-  targetDetails?: DetailedTarget[];
-  fromSearch?: boolean;
-}
 
 const DashboardPage = () => {
-  const location = useLocation();
-  const state = location.state as LocationState;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -52,31 +27,10 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Section - Takes 3/4 width */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Attack Timeline */}
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-            <h2 className="text-lg font-semibold mb-4">Attack Timeline</h2>
-            {state?.fromSearch ? (
-              <AttackOverview 
-                initialTarget={state.selectedTarget} 
-                initialDetails={state.targetDetails}
-              />
-            ) : (
-              <AttackOverview />
-            )}
-          </div>
-          
-          {/* Port Distribution */}
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Port Distribution</h2>
-              <button className="text-sm text-blue-600 hover:text-blue-800">View Details</button>
-            </div>
-            <div className="h-[160px]">
-              <PortHeatmap />
-            </div>
-          </div>
+          {/* Removed Attack Timeline */}
+          {/* Removed Port Distribution */}
         </div>
-        
+
         {/* Right Section - Takes 1/4 width */}
         <div className="lg:col-span-1 bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-4">Recent Alerts</h2>

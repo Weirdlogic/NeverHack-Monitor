@@ -8,6 +8,7 @@ interface SidebarProps {
 
 const navItems = [
   { icon: BarChart2, label: 'Dashboard', path: '/' },
+  { icon: BarChart2, label: 'Stats', path: '/stats' },
   { icon: Activity, label: 'Live Monitor', path: '/monitor' },
   { icon: Search, label: 'Analysis', path: '/analysis' },
   { icon: Shield, label: 'Security', path: '/security' },

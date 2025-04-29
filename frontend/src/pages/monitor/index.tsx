@@ -31,7 +31,7 @@ const MonitorPage = () => {
   React.useEffect(() => {
     const pollInterval = setInterval(async () => {
       try {
-        const targets = await getActiveTargets(1); // Get last 24 hours
+        const targets = await getActiveTargets({ days: 1 }); // Get last 24 hours
         const filtered = targets.filter(target => 
           watchlistItems.some(item => 
             target.host.includes(item.pattern) || target.ip.includes(item.pattern)

@@ -57,8 +57,9 @@ export const getAttackMethods = () =>
   api.get('/dashboard/methods').then(res => res.data);
 
 // Target API calls
-export const getActiveTargets = (days: number = 7) =>
-  api.get<Target[]>('/search/targets/active', { params: { days } }).then(res => res.data);
+export const getActiveTargets = (params: { days?: number; date?: string }) => {
+  return api.get<Target[]>('/search/targets/active', { params }).then(res => res.data);
+};
 
 export const getTargetDetails = (host: string) =>
   api.get<Target[]>(`/search/target/${encodeURIComponent(host)}`).then(res => res.data);
